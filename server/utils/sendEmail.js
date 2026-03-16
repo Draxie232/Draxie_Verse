@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-const sendEmail = async (email, code) => {
+const sendEmail = async (email, otp) => {
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -13,8 +13,8 @@ const sendEmail = async (email, code) => {
   await transporter.sendMail({
     from: process.env.EMAIL,
     to: email,
-    subject: "Draxie Verse Verification",
-    text: `Your verification code is ${code}`
+    subject: "Draxie Verse Email Verification",
+    text: `Your OTP code is ${otp}`
   });
 
 };
