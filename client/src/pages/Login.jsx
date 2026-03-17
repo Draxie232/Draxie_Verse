@@ -1,68 +1,86 @@
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import "../styles/login.css";
+import axios from "axios";
+import "../styles/auth.css";
 
-function Login() {
+export default function Login() {
+  const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    password: ""
+  });
 
-  const validateEmail = (email) => {
-    const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return pattern.test(email);
-  };
+  const handleLogin = async () => {
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        form
+      );
 
-  const handleLogin = (e) => {
-    e.preventDefault();
+      console.log(res.data);
 
-    if (!validateEmail(email)) {
-      setError("Please enter a valid email address");
-      return;
+      // Save token
+      localStorage.setItem("token", res.data.token);
+
+      // Redirect
+      navigate("/home");
+
+    } catch (err) {
+      console.log(err);
+      alert("Login failed");
     }
-
-    setError("");
-    alert("Login request sent");
-  };
-
-  const googleLogin = () => {
-    window.location.href = "http://localhost:5000/auth/google";
   };
 
   return (
-    <div className="login-container">
+    <div className="auth-wrapper">
+      <div className="aura aura-1"></div>
+      <div className="aura aura-2"></div>
 
-      <div className="login-box">
-
-        <h2>Login to Draxie Verse</h2>
-
-        <form onSubmit={handleLogin}>
-
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e)=>setEmail(e.target.value)}
-          />
-
-          {error && <p className="error">{error}</p>}
-
-          <button type="submit" className="login-btn">
-            Login
-          </button>
-
-        </form>
-
-        <div className="divider">
-          <span>OR</span>
+      <div className="auth-content">
+        <div className="brand-mobile">
+          <h1 className="auth-logo">DRAXIE<br/>VERSE</h1>
+          <p>Where creators build influence</p>
         </div>
 
-        <button className="google-btn" onClick={googleLogin}>
-          Sign in with Google
-        </button>
+        <motion.div className="auth-card">
+          <h2>Welcome Back ✨</h2>
 
+          <div className="input-group">
+            <input
+              type="email"
+              placeholder="Email address"
+              onChange={(e) =>
+                setForm({ ...form, email: e.target.value })
+              }
+            />
+
+            <input
+              type="password"
+              placeholder="Password"
+              onChange={(e) =>
+                setForm({ ...form, password: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="forgot-password">
+            <span>Forgot Password?</span>
+          </div>
+
+          <button className="btn primary-btn" onClick={handleLogin}>
+            Log In
+          </button>
+
+          <p className="switch-text">
+            New to the verse?{" "}
+            <span onClick={() => navigate("/signup")}>
+              Create an account
+            </span>
+          </p>
+        </motion.div>
       </div>
-
     </div>
   );
 }
-
-export default Login;

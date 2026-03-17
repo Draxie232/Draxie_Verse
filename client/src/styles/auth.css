@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+/* Main Wrapper */
+.auth-wrapper {
+  position: relative;
+  height: 100dvh;
+  width: 100vw;
+  background-color: #050505;
+  overflow: hidden;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Reusing the Aura from Home */
+.aura {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  opacity: 0.5;
+  animation: float 8s ease-in-out infinite alternate;
+}
+.aura-1 { width: 300px; height: 300px; background: #9333ea; top: -10%; left: -20%; }
+.aura-2 { width: 250px; height: 250px; background: #ec4899; bottom: -10%; right: -20%; animation-delay: -4s; }
+
+/* Content Layout */
+.auth-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* Branding */
+.brand-mobile {
+  text-align: center;
+}
+
+.auth-logo {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -1.5px;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-mobile p {
+  color: #a1a1aa;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Glass Card */
+.auth-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.auth-card h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Inputs */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+input {
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-family: inherit;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+input::placeholder {
+  color: #616161;
+}
+
+/* Glowing focus state */
+input:focus {
+  border-color: #9333ea;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.15);
+}
+
+/* Segmented Toggle (Signup) */
+.role-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 99px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 99px;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+  background: #ffffff;
+  color: #050505;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Buttons (Reusing Home styles) */
+.btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 99px; /* Pill shape for auth looks cleaner */
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  font-family: inherit;
+  border: none;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #9333ea 0%, #ec4899 100%);
+  color: white;
+  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.25);
+}
+
+/* Helper Text */
+.forgot-password {
+  text-align: right;
+  font-size: 13px;
+  color: #a1a1aa;
+}
+
+.forgot-password span:hover {
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.switch-text {
+  text-align: center;
+  font-size: 14px;
+  color: #a1a1aa;
+  margin: 0;
+}
+
+.switch-text span {
+  color: #ec4899;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.switch-text span:hover {
+  color: #fbcfe8;
+}
