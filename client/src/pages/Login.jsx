@@ -12,45 +12,79 @@ export default function Login() {
     password: ""
   });
 
+  const [loading, setLoading] = useState(false);
+
   const handleLogin = async () => {
+    if (!form.email || !form.password) {
+      alert("Please fill all fields");
+      return;
+    }
+
     try {
+      setLoading(true);
+
       const res = await axios.post(
         "http://localhost:5000/api/auth/login",
         form
       );
 
-      console.log(res.data);
+      console.log("Login Success:", res.data);
 
-      // Save token
-      localStorage.setItem("token", res.data.token);
+      // Save token (if added later)
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
+      }
 
-      // Redirect
-      navigate("/home");
+      // Redirect to home/dashboard
+      navigate("/creator/profile");
 
     } catch (err) {
-      console.log(err);
-      alert("Login failed");
+      console.log("Login Error:", err.response?.data);
+
+      const message = err.response?.data?.message;
+
+      // 🔥 HANDLE OTP CASE
+      if (message === "Please verify your email first") {
+        alert("Verify your email first 🔐");
+
+        // Redirect to OTP page with email
+        navigate("/verify-otp", { state: { email: form.email } });
+      } else {
+        alert(message || "Login failed");
+      }
+
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="auth-wrapper">
+      {/* Background */}
       <div className="aura aura-1"></div>
       <div className="aura aura-2"></div>
 
       <div className="auth-content">
+        {/* Branding */}
         <div className="brand-mobile">
-          <h1 className="auth-logo">DRAXIE<br/>VERSE</h1>
+          <h1 className="auth-logo">DRAXIE<br />VERSE</h1>
           <p>Where creators build influence</p>
         </div>
 
-        <motion.div className="auth-card">
+        {/* Card */}
+        <motion.div
+          className="auth-card"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4 }}
+        >
           <h2>Welcome Back ✨</h2>
 
           <div className="input-group">
             <input
               type="email"
               placeholder="Email address"
+              value={form.email}
               onChange={(e) =>
                 setForm({ ...form, email: e.target.value })
               }
@@ -59,6 +93,7 @@ export default function Login() {
             <input
               type="password"
               placeholder="Password"
+              value={form.password}
               onChange={(e) =>
                 setForm({ ...form, password: e.target.value })
               }
@@ -69,8 +104,12 @@ export default function Login() {
             <span>Forgot Password?</span>
           </div>
 
-          <button className="btn primary-btn" onClick={handleLogin}>
-            Log In
+          <button
+            className="btn primary-btn"
+            onClick={handleLogin}
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Log In"}
           </button>
 
           <p className="switch-text">

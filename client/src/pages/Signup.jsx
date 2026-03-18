@@ -6,13 +6,36 @@ import "../styles/auth.css";
 
 export default function Signup() {
   const navigate = useNavigate();
-  
-  const [form, setForm] = useState({
-  username: "",
-  email: "",
-  password: ""
-});
+
   const [role, setRole] = useState("creator");
+
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: ""
+  });
+
+  const handleSignup = async () => {
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/register",
+        {
+          ...form,
+          role
+        }
+      );
+
+      console.log("Signup Success:", res.data);
+
+      alert("Signup successful 🚀");
+
+      navigate("/verify-otp", { state: { email: form.email, password: form.password, role: role } });
+
+    } catch (err) {
+      console.log("Signup Error:", err.response?.data);
+      alert(err.response?.data?.message || "Signup failed");
+    }
+  };
 
   return (
     <div className="auth-wrapper">
@@ -24,19 +47,19 @@ export default function Signup() {
           className="auth-card"
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
         >
           <h2>Join the Verse 🚀</h2>
 
-          {/* Modern Segmented Toggle */}
+          {/* Role Toggle */}
           <div className="role-toggle">
-            <button 
+            <button
               className={`toggle-btn ${role === "creator" ? "active" : ""}`}
               onClick={() => setRole("creator")}
             >
               Creator
             </button>
-            <button 
+
+            <button
               className={`toggle-btn ${role === "recruiter" ? "active" : ""}`}
               onClick={() => setRole("recruiter")}
             >
@@ -45,12 +68,35 @@ export default function Signup() {
           </div>
 
           <div className="input-group">
-            <input type="text" placeholder="Choose a username" />
-            <input type="email" placeholder="Email address" />
-            <input type="password" placeholder="Create a password" />
+            <input
+              type="text"
+              placeholder="Choose a username"
+              value={form.username}
+              onChange={(e) =>
+                setForm({ ...form, username: e.target.value })
+              }
+            />
+
+            <input
+              type="email"
+              placeholder="Email address"
+              value={form.email}
+              onChange={(e) =>
+                setForm({ ...form, email: e.target.value })
+              }
+            />
+
+            <input
+              type="password"
+              placeholder="Create a password"
+              value={form.password}
+              onChange={(e) =>
+                setForm({ ...form, password: e.target.value })
+              }
+            />
           </div>
 
-          <button className="btn primary-btn">
+          <button className="btn primary-btn" onClick={handleSignup}>
             Sign Up as {role.charAt(0).toUpperCase() + role.slice(1)}
           </button>
 
