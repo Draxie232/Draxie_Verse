@@ -36,7 +36,7 @@ export default function Login() {
       }
 
       // Redirect to home/dashboard
-      navigate("/creator/profile");
+      navigate("/creator/home");
 
     } catch (err) {
       console.log("Login Error:", err.response?.data);

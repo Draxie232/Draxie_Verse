@@ -34,7 +34,7 @@ export default function VerifyOtp() {
       }
 
       // 🚀 REDIRECT TO HOME
-      navigate("/creator/profile");
+      navigate("/creator/home");
 
     } catch (err) {
       alert(err.response?.data?.message || "Verification failed");
