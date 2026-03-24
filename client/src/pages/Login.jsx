@@ -14,12 +14,10 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!form.email || !form.password) {
-      alert("Please fill all fields");
-      return;
-    }
-
+  // Cleaned up handleLogin function
+  const handleLogin = async (e) => {
+    e.preventDefault(); 
+    
     try {
       setLoading(true);
 
@@ -30,13 +28,16 @@ export default function Login() {
 
       console.log("Login Success:", res.data);
 
+      // 🔥 THE MAGIC LINE: Save the email so the profile page can find it!
+      localStorage.setItem("userEmail", form.email);
+
       // Save token (if added later)
       if (res.data.token) {
         localStorage.setItem("token", res.data.token);
       }
 
       // Redirect to home/dashboard
-      navigate("/creator/home");
+      navigate("/creator/CreatorHome");
 
     } catch (err) {
       console.log("Login Error:", err.response?.data);

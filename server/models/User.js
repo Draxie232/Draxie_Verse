@@ -23,6 +23,12 @@ const userSchema = new mongoose.Schema({
 
   otpExpires: {
     type: Date
+  },
+
+  // ✅ ADD THIS
+  profilePic: {
+    type: String,
+    default: ""
   }
 
 });

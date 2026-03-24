@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 // Refined, bolder icon for GenZ style
 const BigPlusIcon = () => (
@@ -8,62 +8,165 @@ const BigPlusIcon = () => (
 );
 
 const CreatorProfileGenZ = () => {
-  // Retaining dummy data but we'll use a premium visual
   const user = {
     username: 'DraxieCreator',
-    dp: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DraxieGenZ', // Premium avatar
+    dp: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DraxieGenZ',
     role: 'Creator',
     totalLikes: '24.5K',
     totalViews: '142K',
   };
 
   const mockVideos = [
-    // Video cards need to stack on mobile and look premium
     { id: 1, title: 'Cinematic Flow', thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=600&auto=format&fit=crop', likes: '1.2K', views: '10K' },
     { id: 2, title: 'Inside My Setup', thumbnail: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?q=80&w=600&auto=format&fit=crop', likes: '850', views: '5K' },
     { id: 3, title: 'Unfiltered Q&A', thumbnail: 'https://images.unsplash.com/photo-1616469829581-73993eb86b02?q=80&w=600&auto=format&fit=crop', likes: '3.4K', views: '20K' },
     { id: 4, title: 'Vibe Check ⚡', thumbnail: 'https://images.unsplash.com/photo-1587691597199-2a9f4551df42?q=80&w=600&auto=format&fit=crop', likes: '10K', views: '50K' },
   ];
 
+  // --- NEW UPLOAD STATE & REF ---
+  const [profilePic, setProfilePic] = useState(user.dp);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // --- NEW UPLOAD HANDLER ---
+ const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("image", file); 
+
+    try {
+      // 1. Upload the image to Cloudinary via your backend
+      const uploadResponse = await fetch("http://localhost:5000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const uploadData = await uploadResponse.json();
+
+      if (uploadResponse.ok) {
+        // Instantly swap the UI image so it looks fast
+        setProfilePic(uploadData.imageUrl); 
+
+        // 2. NOW SAVE IT TO MONGODB!
+        const currentUserEmail = localStorage.getItem("userEmail"); // Get the email again
+        
+        if (currentUserEmail) {
+          await fetch("http://localhost:5000/api/update-profile-pic", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: currentUserEmail,
+              imageUrl: uploadData.imageUrl, // The shiny new Cloudinary URL
+            }),
+          });
+          console.log("Profile picture successfully saved to MongoDB Atlas!");
+        }
+
+      } else {
+        alert("Upload failed: " + uploadData.error);
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Something went wrong connecting to the server.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  // --- FETCH USER DATA ON PAGE LOAD ---
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // 1. Get the logged-in user's email. 
+        // Adjust "userEmail" to match whatever key you used when they logged in!
+        const currentUserEmail = localStorage.getItem("userEmail"); 
+
+        if (!currentUserEmail) {
+          console.warn("No user email found in localStorage. Are they logged in?");
+          return;
+        }
+
+        // 2. Ask your Express backend for this user's data
+        const response = await fetch(`http://localhost:5000/api/user/${currentUserEmail}`);
+        const data = await response.json();
+        
+        // 3. If the user exists and has a custom DP in Atlas, update the UI
+        if (response.ok && data && data.profilePic) {
+          setProfilePic(data.profilePic); 
+        }
+      } catch (error) {
+        console.error("Error fetching user data from MongoDB:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []); // The empty array ensures this only runs once when the component mounts
+
   return (
     <div className="relative min-h-screen bg-[#050505] text-white p-4 md:p-8 font-sans selection:bg-purple-500/30 overflow-x-hidden">
       
-      {/* Background Radial Glows for Deep GenZ Atmosphere */}
+      {/* Background Radial Glows */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-1/4 -left-1/4 w-full h-full bg-violet-600/10 rounded-full blur-[200px]" />
         <div className="absolute bottom-1/4 -right-1/4 w-full h-full bg-pink-600/10 rounded-full blur-[200px]" />
       </div>
 
-      {/* Main Container - Ensuring Z-index places content above glowing background */}
       <div className="relative z-10 max-w-7xl mx-auto space-y-6">
 
-        {/* Profile Header - Reimagined for Mobile Spacing & Pure GenZ Texture */}
         <div className="relative bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 md:p-8 space-y-6 md:space-y-0 md:flex md:items-center md:gap-10 shadow-[0_0_60px_-10px_rgba(168,85,247,0.3)]">
           
-          {/* Avatar and Info Block - Hierarchy Fixed */}
           <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left md:gap-6 md:flex-grow">
-            <div className="relative w-28 h-28 md:w-32 md:h-32 flex-shrink-0">
-              {/* Outer Colorful Glowing Ring */}
+            
+            {/* UPDATED AVATAR WRAPPER: Added cursor-pointer, group, and onClick */}
+            <div 
+              className="relative w-28 h-28 md:w-32 md:h-32 flex-shrink-0 cursor-pointer group"
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+            >
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 p-1.5 shadow-[0_0_30px_-5px_rgba(168,85,247,0.7)]" />
+              
               <img 
-                src={user.dp} 
+                src={profilePic} // Uses state instead of hardcoded user.dp
                 alt="User DP" 
-                className="relative w-full h-full rounded-full object-cover bg-[#0a0a0a] p-1 border-4 border-[#0a0a0a]"
+                className={`relative w-full h-full rounded-full object-cover bg-[#0a0a0a] p-1 border-4 border-[#0a0a0a] transition-opacity duration-300 ${isUploading ? 'opacity-50' : 'group-hover:opacity-75'}`}
               />
-              {/* Role Badge - Overlayed for depth */}
-              <span className="absolute -bottom-1 -right-1 px-3 py-1 text-xs font-semibold uppercase tracking-wider bg-white/10 rounded-full text-purple-300 border border-purple-500/30 backdrop-blur-sm shadow-xl">
+
+              {/* Hover Edit Overlay */}
+              <div className="absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-300 rounded-full opacity-0 group-hover:opacity-100 bg-black/40">
+                 {isUploading ? (
+                   <span className="text-xs font-bold text-white animate-pulse">Uploading...</span>
+                 ) : (
+                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-white">
+                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z" />
+                   </svg>
+                 )}
+              </div>
+
+              {/* HIDDEN FILE INPUT */}
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+              />
+
+              <span className="absolute -bottom-1 -right-1 px-3 py-1 text-xs font-semibold uppercase tracking-wider bg-white/10 rounded-full text-purple-300 border border-purple-500/30 backdrop-blur-sm shadow-xl z-20">
                 {user.role}
               </span>
             </div>
+            {/* ... Rest of your component remains identical from here down ... */}
             
             <div className="mt-6 md:mt-0 md:flex-grow">
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">{user.username}</h1>
-              {/* A classic GenZ component: The italicized sub-header/bio */}
               <p className="mt-1 text-gray-400 text-sm italic">"Just another creative soul in the digital expanse."</p>
             </div>
           </div>
 
-          {/* Engagement Stats - Clean, centered, and color-coded */}
           <div className="flex justify-center md:justify-end gap-6 border-t border-b border-white/10 py-4 md:py-0 md:border-none md:gap-8">
             <div className="text-center">
               <p className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">
@@ -71,7 +174,7 @@ const CreatorProfileGenZ = () => {
               </p>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">Likes ✨</p>
             </div>
-            <div className="w-px h-12 md:h-16 bg-white/10 self-center md:hidden" /> {/* Small divider on mobile */}
+            <div className="w-px h-12 md:h-16 bg-white/10 self-center md:hidden" />
             <div className="text-center">
               <p className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-pink-400">
                 {user.totalViews}
@@ -80,7 +183,6 @@ const CreatorProfileGenZ = () => {
             </div>
           </div>
 
-          {/* Desktop Upload Button - Hidden on mobile */}
           <div className="hidden md:block flex-shrink-0">
             <button className="px-8 py-4 rounded-2xl font-semibold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 hover:from-violet-500 hover:to-pink-500 transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.4),0_0_30px_rgba(168,85,247,0.2)] flex items-center gap-3 text-lg">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
@@ -91,10 +193,8 @@ const CreatorProfileGenZ = () => {
           </div>
         </div>
 
-        {/* mobile Action Button - Highly designed CTA, replacing the basic box */}
         <div className="md:hidden">
           <button className="relative w-full overflow-hidden bg-white/5 border border-white/10 rounded-2xl p-6 group shadow-xl">
-            {/* The actual button content */}
             <div className="relative z-10 flex items-center justify-between">
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-white">Create New Vlog</h3>
@@ -104,12 +204,10 @@ const CreatorProfileGenZ = () => {
                 <BigPlusIcon />
               </div>
             </div>
-            {/* Hover background effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-violet-900 via-purple-900 to-pink-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-[10px]" />
           </button>
         </div>
 
-        {/* Content Section - Clear header and stacked mobile cards */}
         <div className="space-y-6 pt-4">
           <h2 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-3">
             <span className="w-3 h-3 rounded-full bg-gradient-to-r from-violet-500 to-pink-500" />
@@ -119,15 +217,12 @@ const CreatorProfileGenZ = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {mockVideos.map((video) => (
               <div key={video.id} className="group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-purple-500/30 transition-all duration-300 shadow-2xl">
-                
-                {/* 16:9 Thumbnail - Essential for sensible mobile video */}
                 <div className="aspect-video relative overflow-hidden bg-black/50">
                   <img 
                     src={video.thumbnail} 
                     alt={video.title} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  {/* Neon play button hover overlay */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <div className="w-14 h-14 rounded-full bg-purple-600/30 backdrop-blur-sm flex items-center justify-center border border-purple-400 shadow-[0_0_20px_-2px_rgba(168,85,247,0.8)]">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white ml-1.5" viewBox="0 0 20 20" fill="currentColor">
@@ -137,7 +232,6 @@ const CreatorProfileGenZ = () => {
                   </div>
                 </div>
 
-                {/* Video Info - Redesigned text structure */}
                 <div className="p-5 flex flex-col justify-between">
                   <h3 className="font-semibold text-lg text-white mb-2 leading-tight">{video.title}</h3>
                   <div className="flex items-center justify-between text-sm text-gray-500 border-t border-white/10 pt-3 mt-1">
@@ -156,14 +250,11 @@ const CreatorProfileGenZ = () => {
                     </div>
                   </div>
                 </div>
-
               </div>
             ))}
           </div>
         </div>
-
       </div>
-
     </div>
   );
 };

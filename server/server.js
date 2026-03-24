@@ -4,6 +4,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const mongoose = require("mongoose");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 const authRoutes = require("./routes/authRoutes");
 
@@ -16,6 +17,7 @@ app.use(express.json());
 
 // ✅ THIS LINE MUST EXIST
 app.use("/api/auth", authRoutes);
+app.use("/api", uploadRoutes);
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
