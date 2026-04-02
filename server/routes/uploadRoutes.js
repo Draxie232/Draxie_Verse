@@ -3,6 +3,7 @@ const router = express.Router();
 const upload = require("../middleware/upload");
 const cloudinary = require("../config/cloudinary");
 const fs = require("fs");
+const uploadController = require('../controllers/uploadController');
 const User = require("../models/User");
 
 router.post("/upload", upload.single("image"), async (req, res) => {
