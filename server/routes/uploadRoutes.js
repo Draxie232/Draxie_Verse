@@ -18,4 +18,8 @@ router.get('/user/:email', uploadController.getUserProfile);
 // 5. Get User's Videos
 router.get('/videos/:email', uploadController.getUserVideos);
 
+router.delete('/videos/:id', uploadController.deleteVideo);
+router.get('/videos', uploadController.getAllVideos);
+router.post('/videos/:id/interaction', uploadController.updateInteraction);
+
 module.exports = router;
