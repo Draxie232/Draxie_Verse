@@ -1,57 +1,21 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const upload = require("../middleware/upload");
-const cloudinary = require("../config/cloudinary");
-const fs = require("fs");
-const uploadController = require('../controllers/uploadController');
-const User = require("../models/User");
+const upload = require('../middleware/upload'); 
+const uploadController = require('../controllers/uploadController'); 
 
-router.post("/upload", upload.single("image"), async (req, res) => {
-  try {
-    // upload to cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path);
+// 1. Upload Profile Picture to Cloudinary
+router.post('/upload', upload.single('image'), uploadController.uploadProfilePic);
 
-    // delete local file after upload
-    fs.unlinkSync(req.file.path);
+// 2. Save Profile Picture URL to MongoDB
+router.post('/update-profile-pic', uploadController.updateUserProfilePic);
 
-    res.status(200).json({
-      message: "Uploaded successfully",
-      imageUrl: result.secure_url,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// 3. Upload Video to Cloudinary & Save to MongoDB
+router.post('/upload-video', upload.single('video'), uploadController.uploadVideo);
 
-router.post("/update-profile-pic", async (req, res) => {
-  try {
-    const { email, imageUrl } = req.body;
+// 4. Get User Profile Data
+router.get('/user/:email', uploadController.getUserProfile);
 
-    const user = await User.findOneAndUpdate(
-      { email },
-      { profilePic: imageUrl },
-      { new: true }
-    );
-
-    res.json({
-      message: "Profile updated",
-      profilePic: user.profilePic,
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.get("/user/:email", async (req, res) => {
-  try {
-    const user = await User.findOne({ email: req.params.email });
-
-    res.json(user);
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// 5. Get User's Videos
+router.get('/videos/:email', uploadController.getUserVideos);
 
 module.exports = router;
