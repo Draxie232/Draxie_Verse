@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-
+import { useNavigate } from 'react-router-dom'; // Add this if you use React Router
+import { Heart, Sparkles, Eye, LogOut } from 'lucide-react'; // Add LogOut here
 // --- ICONS ---
 const BigPlusIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-10 h-10 text-violet-400">
@@ -33,6 +34,22 @@ const CloseIcon = () => (
 
 
 const CreatorProfileGenZ = () => {
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    // 1. Ask for confirmation so they don't click it accidentally
+    if (window.confirm("Are you sure you want to log out?")) {
+      // 2. Clear all user data from local storage
+      localStorage.removeItem("userEmail");
+      // Add any other tokens you might be storing:
+      // localStorage.removeItem("token"); 
+
+      // 3. Redirect to the login page (Change '/login' to your actual login route)
+      navigate('/login'); 
+      
+      // Note: If you aren't using React Router, use this instead:
+      // window.location.href = '/login';
+    }
+  };
   const user = { username: 'DraxieCreator', role: 'Creator', totalLikes: '24.5K', totalViews: '142K' };
 
   const [profilePic, setProfilePic] = useState('https://api.dicebear.com/7.x/avataaars/svg?seed=DraxieGenZ');
@@ -252,6 +269,16 @@ const CreatorProfileGenZ = () => {
         
         {/* Profile Header */}
         <div className="relative bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 md:p-8 space-y-6 md:space-y-0 md:flex md:items-center md:gap-10 shadow-[0_0_60px_-10px_rgba(168,85,247,0.3)]">
+        {/* --- NEW: LOGOUT BUTTON --- */}
+          <button 
+            onClick={handleLogout}
+            className="absolute top-6 right-6 p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-transparent hover:border-red-500/30 transition-all group z-20"
+            title="Log Out"
+          >
+            <LogOut size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+          
+             {/* ... your existing avatar and username code stays exactly the same ... */}
           <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left md:gap-6 md:flex-grow">
             <div className="relative w-28 h-28 md:w-32 md:h-32 flex-shrink-0 cursor-pointer group" onClick={() => !isUploadingPic && picInputRef.current?.click()}>
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-500 via-purple-500 to-pink-500 p-1.5" />
