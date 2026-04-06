@@ -1,75 +1,206 @@
-import React from 'react';
-import { User, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, ChevronRight, ArrowLeft, Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // NEW: For redirecting unauthenticated users
+import io from 'socket.io-client';
 
 const Approaches = () => {
-  // Mock data to map through
+  const navigate = useNavigate();
+  const currentUserEmail = localStorage.getItem("userEmail");
+
+  // --- STATE ---
+  const [socket, setSocket] = useState(null); // Keep socket in state so we control it
+  const [activeChat, setActiveChat] = useState(null); 
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [messageList, setMessageList] = useState([]);
+
+  // Mock Inbox Data
   const approachesData = [
-    { id: 1, user: 'User1', message: "Let's connect 🔥", time: '2m ago', unread: true },
-    { id: 2, user: 'User2', message: "Loved your edit!", time: '1h ago', unread: false },
-    { id: 3, user: 'User3', message: "Are you open for collaborations?", time: '5h ago', unread: true },
+    { id: 1, user: 'NeonVibes', email: 'neon@test.com', message: "Let's connect 🔥", time: '2m ago', unread: true },
+    { id: 2, user: 'PixelArtist', email: 'pixel@test.com', message: "Loved your edit!", time: '1h ago', unread: false },
+    { id: 3, user: 'DraxieFan', email: 'fan@test.com', message: "Are you open for collabs?", time: '5h ago', unread: true },
   ];
 
-  return (
-    // Deep dark background with a very subtle purple tint
-    <div className="min-h-screen bg-[#0a0610] text-white p-5 pb-24 relative overflow-hidden">
+  // --- AUTH GUARD & SOCKET INITIALIZATION ---
+  useEffect(() => {
+    // 1. Kick the user out to the login page if they don't have an email in local storage
+    if (!currentUserEmail) {
+      navigate('/login'); // Make sure this matches your actual login route!
+      return;
+    }
+
+    // 2. ONLY connect to the socket if they are logged in and on this page
+    const newSocket = io("http://localhost:5000");
+    setSocket(newSocket);
+
+    // Listen for incoming messages
+    newSocket.on("receive_message", (data) => {
+      setMessageList((list) => [...list, data]);
+    });
+
+    // 3. CLEANUP: Disconnect from the socket when they leave this page or log out
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [currentUserEmail, navigate]);
+
+  // --- HANDLERS ---
+  const openChat = (approachInfo) => {
+    setActiveChat(approachInfo);
+    
+    const room = [currentUserEmail, approachInfo.email].sort().join("_");
+    
+    // Use the socket from state!
+    if (socket) {
+      socket.emit("join_chat", room);
+    }
+    
+    setMessageList([]); 
+  };
+
+  const sendMessage = async () => {
+    if (currentMessage.trim() !== "" && activeChat && socket) {
+      const room = [currentUserEmail, activeChat.email].sort().join("_");
       
-      {/* Subtle background ambient glow (like the top of your profile page) */}
+      const messageData = {
+        room: room,
+        sender: currentUserEmail,
+        receiver: activeChat.email,
+        text: currentMessage,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+
+      await socket.emit("send_message", messageData);
+      
+      setMessageList((list) => [...list, messageData]);
+      setCurrentMessage("");
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') sendMessage();
+  };
+
+  // If the user isn't logged in, don't render the page while the redirect happens
+  if (!currentUserEmail) return null; 
+
+  return (
+    <div className="min-h-screen bg-[#0a0610] text-white p-5 pb-24 relative overflow-hidden flex justify-center">
+      
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-64 bg-fuchsia-900/10 blur-[100px] pointer-events-none"></div>
 
-      <div className="max-w-md mx-auto relative z-10">
+      <div className="w-full max-w-md relative z-10 flex flex-col">
         
-        {/* Header section matched to your "Recently Uploaded" style */}
-        <div className="flex items-center gap-3 mb-6 mt-2">
-          {/* The glowing pink dot */}
-          <div className="w-2.5 h-2.5 rounded-full bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.8)]"></div>
-          <h1 className="text-[22px] font-black tracking-wide text-white">Approaches</h1>
-        </div>
-
-        {/* Approaches List */}
-        <div className="space-y-4">
-          {approachesData.map((item) => (
-            <div 
-              key={item.id} 
-              // Solid dark card with subtle border, matching your "Create New Vlog" card
-              className="flex items-center justify-between p-4 rounded-2xl bg-[#15111a] border border-[#2a2432] transition-all duration-300 hover:border-fuchsia-500/40 hover:bg-[#1a1520] cursor-pointer"
-            >
-              <div className="flex items-center gap-4">
-                
-                {/* Avatar matching the dark UI */}
-                <div className="w-12 h-12 shrink-0 rounded-full bg-[#221c2b] flex items-center justify-center border border-[#332b40] relative">
-                  <User size={20} className="text-gray-400" />
-                  {/* Unread dot indicator on the avatar */}
-                  {item.unread && (
-                    <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-fuchsia-500 border-2 border-[#15111a]"></span>
-                  )}
-                </div>
-                
-                {/* Text Content */}
-                <div className="flex flex-col">
-                  <h3 className="font-extrabold text-gray-100 text-[17px] tracking-wide">
-                    {item.user}
-                  </h3>
-                  {/* Italicized subtitle like your profile bio */}
-                  <p className="text-[13px] text-gray-400 mt-0.5 italic">
-                    "{item.message}"
-                  </p>
-                </div>
-              </div>
-
-              {/* Trailing Action & Time */}
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <span className="text-[10px] font-bold tracking-wider text-fuchsia-400/80 uppercase">
-                  {item.time}
-                </span>
-                {/* Small button matching the '+' button on your profile */}
-                <div className="w-8 h-8 rounded-xl bg-[#221c2b] flex items-center justify-center transition-colors hover:bg-[#2d2538]">
-                  <ChevronRight size={16} className={item.unread ? "text-fuchsia-400" : "text-gray-500"} />
-                </div>
-              </div>
-              
+        {/* VIEW 1: THE INBOX LIST */}
+        {!activeChat ? (
+          <>
+            <div className="flex items-center gap-3 mb-6 mt-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-fuchsia-500 shadow-[0_0_8px_rgba(217,70,239,0.8)]"></div>
+              <h1 className="text-[22px] font-black tracking-wide text-white">Approaches</h1>
             </div>
-          ))}
-        </div>
+
+            <div className="space-y-4">
+              {approachesData.map((item) => (
+                <div 
+                  key={item.id} 
+                  onClick={() => openChat(item)}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-[#15111a] border border-[#2a2432] transition-all duration-300 hover:border-fuchsia-500/40 hover:bg-[#1a1520] cursor-pointer"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 shrink-0 rounded-full bg-[#221c2b] flex items-center justify-center border border-[#332b40] relative">
+                      <User size={20} className="text-gray-400" />
+                      {item.unread && (
+                        <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-fuchsia-500 border-2 border-[#15111a]"></span>
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <h3 className="font-extrabold text-gray-100 text-[17px] tracking-wide">{item.user}</h3>
+                      <p className="text-[13px] text-gray-400 mt-0.5 italic line-clamp-1">"{item.message}"</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <span className="text-[10px] font-bold tracking-wider text-fuchsia-400/80 uppercase">{item.time}</span>
+                    <div className="w-8 h-8 rounded-xl bg-[#221c2b] flex items-center justify-center transition-colors hover:bg-[#2d2538]">
+                      <ChevronRight size={16} className={item.unread ? "text-fuchsia-400" : "text-gray-500"} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          
+        /* VIEW 2: THE REAL-TIME CHAT ROOM */
+          <div className="flex flex-col h-[85vh]">
+            
+            {/* Chat Header */}
+            <div className="flex items-center gap-4 pb-4 border-b border-[#2a2432] mb-4">
+              <button 
+                onClick={() => setActiveChat(null)}
+                className="w-10 h-10 rounded-full bg-[#15111a] flex items-center justify-center border border-[#2a2432] hover:bg-[#221c2b] transition-colors"
+              >
+                <ArrowLeft size={18} className="text-white" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#221c2b] flex items-center justify-center border border-[#332b40]">
+                  <User size={18} className="text-gray-400" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-white text-[16px]">{activeChat.user}</h3>
+                  <span className="text-xs text-fuchsia-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500 animate-pulse"></span>
+                    Online
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Chat Messages Area */}
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 mb-4 pb-4">
+              <div className="flex justify-start">
+                <div className="bg-[#15111a] border border-[#2a2432] text-gray-200 p-3.5 rounded-2xl rounded-tl-sm max-w-[80%] text-[14px]">
+                  {activeChat.message}
+                </div>
+              </div>
+
+              {messageList.map((msg, index) => {
+                const isMe = msg.sender === currentUserEmail;
+                return (
+                  <div key={index} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                    <div className={`p-3.5 rounded-2xl max-w-[80%] text-[14px] flex flex-col gap-1 shadow-md ${
+                      isMe 
+                        ? "bg-gradient-to-br from-fuchsia-600 to-purple-600 text-white rounded-tr-sm" 
+                        : "bg-[#15111a] border border-[#2a2432] text-gray-200 rounded-tl-sm"
+                    }`}>
+                      <span>{msg.text}</span>
+                      <span className={`text-[10px] font-bold self-end ${isMe ? "text-fuchsia-200" : "text-gray-500"}`}>
+                        {msg.time}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Input Area */}
+            <div className="relative flex items-center">
+              <input 
+                type="text" 
+                value={currentMessage}
+                onChange={(e) => setCurrentMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                className="w-full bg-[#15111a] border border-[#2a2432] text-white px-5 py-4 rounded-2xl focus:outline-none focus:border-fuchsia-500/50 transition-colors pr-14"
+              />
+              <button 
+                onClick={sendMessage}
+                className="absolute right-2 w-10 h-10 rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 flex items-center justify-center transition-colors shadow-[0_0_10px_rgba(217,70,239,0.4)]"
+              >
+                <Send size={16} className="text-white ml-0.5" />
+              </button>
+            </div>
+
+          </div>
+        )}
 
       </div>
     </div>
