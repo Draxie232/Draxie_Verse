@@ -1,60 +1,86 @@
 import React, { useState, useEffect } from 'react';
 import { User, ChevronRight, ArrowLeft, Send } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // NEW: For redirecting unauthenticated users
+import { useNavigate, useLocation } from 'react-router-dom';
 import io from 'socket.io-client';
 
 const Approaches = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUserEmail = localStorage.getItem("userEmail");
 
-  // --- STATE ---
-  const [socket, setSocket] = useState(null); // Keep socket in state so we control it
+  const [socket, setSocket] = useState(null); 
   const [activeChat, setActiveChat] = useState(null); 
   const [currentMessage, setCurrentMessage] = useState("");
   const [messageList, setMessageList] = useState([]);
+  
+  // --- NEW: Real Inbox State ---
+  const [inboxList, setInboxList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock Inbox Data
-  const approachesData = [
-    { id: 1, user: 'NeonVibes', email: 'neon@test.com', message: "Let's connect 🔥", time: '2m ago', unread: true },
-    { id: 2, user: 'PixelArtist', email: 'pixel@test.com', message: "Loved your edit!", time: '1h ago', unread: false },
-    { id: 3, user: 'DraxieFan', email: 'fan@test.com', message: "Are you open for collabs?", time: '5h ago', unread: true },
-  ];
-
-  // --- AUTH GUARD & SOCKET INITIALIZATION ---
+  // --- 1. FETCH INBOX & INIT SOCKET ---
   useEffect(() => {
-    // 1. Kick the user out to the login page if they don't have an email in local storage
     if (!currentUserEmail) {
-      navigate('/login'); // Make sure this matches your actual login route!
+      navigate('/login'); 
       return;
     }
 
-    // 2. ONLY connect to the socket if they are logged in and on this page
+    // Fetch the real inbox list from MongoDB
+    const fetchInbox = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/messages/inbox/${currentUserEmail}`);
+        const data = await res.json();
+        if (res.ok) setInboxList(data.inbox || []);
+      } catch (error) {
+        console.error("Error fetching inbox:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchInbox();
+
+    // Init Socket
     const newSocket = io("http://localhost:5000");
     setSocket(newSocket);
 
-    // Listen for incoming messages
     newSocket.on("receive_message", (data) => {
+      // If we are actively chatting with the person who sent it, show it instantly
       setMessageList((list) => [...list, data]);
+      // (You can also update the inboxList here in the future so the latest message pops to the top!)
     });
 
-    // 3. CLEANUP: Disconnect from the socket when they leave this page or log out
     return () => {
       newSocket.disconnect();
     };
   }, [currentUserEmail, navigate]);
 
-  // --- HANDLERS ---
-  const openChat = (approachInfo) => {
-    setActiveChat(approachInfo);
-    
-    const room = [currentUserEmail, approachInfo.email].sort().join("_");
-    
-    // Use the socket from state!
-    if (socket) {
-      socket.emit("join_chat", room);
+  // --- 2. AUTO-OPEN CHAT FROM VIDEO FEED ---
+  useEffect(() => {
+    if (socket && location.state?.autoOpenChat) {
+      const targetUser = location.state.autoOpenChat;
+      openChat(targetUser); // Use the openChat function to load history
+      navigate('.', { replace: true, state: null });
     }
+  }, [socket, location.state, navigate]);
+
+  // --- HANDLERS ---
+  const openChat = async (approachInfo) => {
+    setActiveChat(approachInfo);
+    setMessageList([]); // Clear screen temporarily
     
-    setMessageList([]); 
+    // Join the private socket room
+    const room = [currentUserEmail, approachInfo.email].sort().join("_");
+    if (socket) socket.emit("join_chat", room);
+    
+    // --- NEW: Fetch Real Chat History ---
+    try {
+      const res = await fetch(`http://localhost:5000/api/messages/history/${currentUserEmail}/${approachInfo.email}`);
+      const data = await res.json();
+      if (res.ok) {
+        setMessageList(data.messages || []);
+      }
+    } catch (error) {
+      console.error("Error fetching chat history:", error);
+    }
   };
 
   const sendMessage = async () => {
@@ -69,6 +95,7 @@ const Approaches = () => {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
+      // Emit to server (server will now save it to DB!)
       await socket.emit("send_message", messageData);
       
       setMessageList((list) => [...list, messageData]);
@@ -80,12 +107,10 @@ const Approaches = () => {
     if (e.key === 'Enter') sendMessage();
   };
 
-  // If the user isn't logged in, don't render the page while the redirect happens
   if (!currentUserEmail) return null; 
 
   return (
     <div className="min-h-screen bg-[#0a0610] text-white p-5 pb-24 relative overflow-hidden flex justify-center">
-      
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-64 bg-fuchsia-900/10 blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-md relative z-10 flex flex-col">
@@ -98,44 +123,56 @@ const Approaches = () => {
               <h1 className="text-[22px] font-black tracking-wide text-white">Approaches</h1>
             </div>
 
-            <div className="space-y-4">
-              {approachesData.map((item) => (
-                <div 
-                  key={item.id} 
-                  onClick={() => openChat(item)}
-                  className="flex items-center justify-between p-4 rounded-2xl bg-[#15111a] border border-[#2a2432] transition-all duration-300 hover:border-fuchsia-500/40 hover:bg-[#1a1520] cursor-pointer"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 shrink-0 rounded-full bg-[#221c2b] flex items-center justify-center border border-[#332b40] relative">
-                      <User size={20} className="text-gray-400" />
-                      {item.unread && (
-                        <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-fuchsia-500 border-2 border-[#15111a]"></span>
-                      )}
+            {isLoading ? (
+               <div className="flex justify-center mt-10"><span className="animate-spin w-8 h-8 border-4 border-fuchsia-500 border-t-transparent rounded-full"></span></div>
+            ) : inboxList.length === 0 ? (
+              <div className="text-center text-gray-500 mt-10">
+                <p>Your inbox is empty.</p>
+                <p className="text-sm mt-2">Start approaching creators from the feed!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {inboxList.map((item) => (
+                  <div 
+                    key={item.id} 
+                    onClick={() => openChat(item)}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-[#15111a] border border-[#2a2432] transition-all duration-300 hover:border-fuchsia-500/40 hover:bg-[#1a1520] cursor-pointer"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 shrink-0 rounded-full bg-[#221c2b] flex items-center justify-center border border-[#332b40] relative">
+                        <User size={20} className="text-gray-400" />
+                        {item.unread && (
+                          <span className="absolute top-0 right-0 w-3 h-3 rounded-full bg-fuchsia-500 border-2 border-[#15111a]"></span>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <h3 className="font-extrabold text-gray-100 text-[17px] tracking-wide">{item.user}</h3>
+                        <p className="text-[13px] text-gray-400 mt-0.5 italic line-clamp-1">"{item.message}"</p>
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <h3 className="font-extrabold text-gray-100 text-[17px] tracking-wide">{item.user}</h3>
-                      <p className="text-[13px] text-gray-400 mt-0.5 italic line-clamp-1">"{item.message}"</p>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className="text-[10px] font-bold tracking-wider text-fuchsia-400/80 uppercase">{item.time}</span>
+                      <div className="w-8 h-8 rounded-xl bg-[#221c2b] flex items-center justify-center transition-colors hover:bg-[#2d2538]">
+                        <ChevronRight size={16} className={item.unread ? "text-fuchsia-400" : "text-gray-500"} />
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className="text-[10px] font-bold tracking-wider text-fuchsia-400/80 uppercase">{item.time}</span>
-                    <div className="w-8 h-8 rounded-xl bg-[#221c2b] flex items-center justify-center transition-colors hover:bg-[#2d2538]">
-                      <ChevronRight size={16} className={item.unread ? "text-fuchsia-400" : "text-gray-500"} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           
         /* VIEW 2: THE REAL-TIME CHAT ROOM */
           <div className="flex flex-col h-[85vh]">
             
-            {/* Chat Header */}
             <div className="flex items-center gap-4 pb-4 border-b border-[#2a2432] mb-4">
               <button 
-                onClick={() => setActiveChat(null)}
+                onClick={() => {
+                  setActiveChat(null);
+                  // Quick trick to refresh inbox when leaving a chat
+                  window.location.reload(); 
+                }}
                 className="w-10 h-10 rounded-full bg-[#15111a] flex items-center justify-center border border-[#2a2432] hover:bg-[#221c2b] transition-colors"
               >
                 <ArrowLeft size={18} className="text-white" />
@@ -154,14 +191,10 @@ const Approaches = () => {
               </div>
             </div>
 
-            {/* Chat Messages Area */}
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 mb-4 pb-4">
-              <div className="flex justify-start">
-                <div className="bg-[#15111a] border border-[#2a2432] text-gray-200 p-3.5 rounded-2xl rounded-tl-sm max-w-[80%] text-[14px]">
-                  {activeChat.message}
-                </div>
-              </div>
-
+              {messageList.length === 0 && (
+                 <div className="text-center text-gray-500 mt-10 italic text-sm">This is the beginning of your conversation.</div>
+              )}
               {messageList.map((msg, index) => {
                 const isMe = msg.sender === currentUserEmail;
                 return (
@@ -181,7 +214,6 @@ const Approaches = () => {
               })}
             </div>
 
-            {/* Input Area */}
             <div className="relative flex items-center">
               <input 
                 type="text" 

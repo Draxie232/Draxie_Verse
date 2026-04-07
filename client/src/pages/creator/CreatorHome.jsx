@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Sparkles, Eye, Volume2, VolumeX } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // ==========================================
 // 1. SMART VIDEO COMPONENT
-// This tracks if it's on-screen to play/pause automatically
+// Tracks if it's on-screen to play/pause automatically
 // ==========================================
-const VideoPost = ({ video, isMuted, toggleMute, handleLike, handleVideoPlay }) => {
+const VideoPost = ({ video, isMuted, toggleMute, handleLike, handleVideoPlay, handleApproach }) => {
   const videoRef = useRef(null);
   const username = video.userEmail ? video.userEmail.split('@')[0] : "Creator";
 
@@ -14,12 +15,16 @@ const VideoPost = ({ video, isMuted, toggleMute, handleLike, handleVideoPlay }) 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          // Video is on screen -> Play it and count the view
-          videoRef.current.play().catch(err => console.log("Autoplay blocked by browser:", err));
+          // SAFE PLAY: Only play if the video still exists on the screen
+          if (videoRef.current) {
+            videoRef.current.play().catch(err => console.log("Autoplay blocked by browser:", err));
+          }
           handleVideoPlay(video._id); 
         } else {
-          // Video scrolled off screen -> Pause it
-          videoRef.current.pause();
+          // SAFE PAUSE: Prevents the "Cannot read properties of null" error
+          if (videoRef.current) {
+            videoRef.current.pause();
+          }
         }
       },
       { threshold: 0.6 } // Triggers when 60% of the video is visible
@@ -43,7 +48,7 @@ const VideoPost = ({ video, isMuted, toggleMute, handleLike, handleVideoPlay }) 
         loop
         playsInline
         className="absolute inset-0 w-full h-full object-cover cursor-pointer"
-        onClick={toggleMute} // Tapping the video itself can also toggle mute!
+        onClick={toggleMute} // Tapping the video itself toggles mute
       />
       
       {/* OVERLAY UI */}
@@ -76,8 +81,12 @@ const VideoPost = ({ video, isMuted, toggleMute, handleLike, handleVideoPlay }) 
 
         {/* Action Buttons Row */}
         <div className="flex items-center gap-4 pointer-events-auto">
-          {/* Approach Button */}
-          <button className="flex-1 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(217,70,239,0.3)] active:scale-95 mb-5">
+          
+          {/* Approach Button (Redirects to Chat) */}
+          <button 
+            onClick={() => handleApproach(video.userEmail)}
+            className="flex-1 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(217,70,239,0.3)] active:scale-95 mb-5"
+          >
             <Sparkles size={18} />
             <span className="tracking-wide">Approach</span>
           </button>
@@ -111,6 +120,8 @@ const VideoPost = ({ video, isMuted, toggleMute, handleLike, handleVideoPlay }) 
 // 2. MAIN HOME FEED COMPONENT
 // ==========================================
 const Home = () => {
+  const navigate = useNavigate(); // Initialize Router Navigation
+
   const [videos, setVideos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -118,6 +129,7 @@ const Home = () => {
   const [isMuted, setIsMuted] = useState(true); 
   const viewedVideosTracker = useRef(new Set());
 
+  // Fetch Videos on Load
   useEffect(() => {
     const fetchGlobalFeed = async () => {
       try {
@@ -138,8 +150,27 @@ const Home = () => {
     fetchGlobalFeed();
   }, []);
 
+  // --- HANDLERS ---
   const toggleMute = () => {
     setIsMuted(!isMuted);
+  };
+
+ const handleApproach = (creatorEmail) => {
+    // 1. Create a display name from the email (e.g., "bhuwanca11@gmail.com" -> "bhuwanca11")
+    const username = creatorEmail ? creatorEmail.split('@')[0] : "Creator";
+
+    // 2. Navigate to the chat page, but pass the target user's info in the "state"
+    navigate('/creator/Approaches', { 
+      state: { 
+        autoOpenChat: {
+          user: username,
+          email: creatorEmail,
+          message: "Let's connect! ⚡", // A default starter message
+          time: "Just now",
+          unread: false
+        } 
+      } 
+    }); 
   };
 
   const handleLike = async (id, currentIsLiked) => {
@@ -204,6 +235,7 @@ const Home = () => {
           toggleMute={toggleMute}
           handleLike={handleLike}
           handleVideoPlay={handleVideoPlay}
+          handleApproach={handleApproach} // <-- Passed down successfully
         />
       ))}
     </div>
