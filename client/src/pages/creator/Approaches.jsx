@@ -27,7 +27,7 @@ const Approaches = () => {
     // Fetch the real inbox list from MongoDB
     const fetchInbox = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/messages/inbox/${currentUserEmail}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/messages/inbox/${currentUserEmail}`);
         const data = await res.json();
         if (res.ok) setInboxList(data.inbox || []);
       } catch (error) {
@@ -39,7 +39,7 @@ const Approaches = () => {
     fetchInbox();
 
     // Init Socket
-    const newSocket = io("http://localhost:5000");
+    const newSocket = io(`${import.meta.env.VITE_API_URL}`);
     setSocket(newSocket);
 
     newSocket.on("receive_message", (data) => {
@@ -73,7 +73,7 @@ const Approaches = () => {
     
     // --- NEW: Fetch Real Chat History ---
     try {
-      const res = await fetch(`http://localhost:5000/api/messages/history/${currentUserEmail}/${approachInfo.email}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/messages/history/${currentUserEmail}/${approachInfo.email}`);
       const data = await res.json();
       if (res.ok) {
         setMessageList(data.messages || []);
