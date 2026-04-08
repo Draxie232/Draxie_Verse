@@ -12,9 +12,22 @@ const authRoutes = require('./routes/authRoutes');
 const messageRoutes = require('./routes/messageRoutes'); 
 const Message = require('./models/Message'); 
 
+// --- ALLOWED ORIGINS ---
+// Define your allowed domains once so it's easy to update later
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://draxie-verse.vercel.app"
+];
+
 // --- APP SETUP ---
 const app = express();
-app.use(cors());
+
+// Update Express CORS to recognize Vercel
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
 app.use(express.json());
 
 connectDB();
@@ -26,10 +39,13 @@ app.use('/api/messages', messageRoutes);
 
 // --- SOCKET.IO SETUP ---
 const server = http.createServer(app);
+
+// Update Socket.io CORS to recognize Vercel
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", 
-    methods: ["GET", "POST"]
+    origin: allowedOrigins, 
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -60,7 +76,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
   });
-}); // <-- This is the bracket that was likely missing!
+});
 
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
