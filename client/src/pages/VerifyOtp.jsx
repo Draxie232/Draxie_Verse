@@ -14,14 +14,14 @@ export default function VerifyOtp() {
   const handleVerify = async () => {
     try {
       // ✅ Verify OTP
-      await axios.post("http://localhost:5000/api/auth/verify-otp", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp`, {
         email,
         otp
       });
 
       // 🔥 AUTO LOGIN AFTER VERIFY
       const loginRes = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
         {
           email,
           password
