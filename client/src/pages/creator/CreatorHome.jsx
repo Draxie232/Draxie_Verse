@@ -133,7 +133,7 @@ const Home = () => {
   useEffect(() => {
     const fetchGlobalFeed = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/videos');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/videos`);
         const data = await response.json();
 
         if (response.ok && data.videos) {
@@ -187,7 +187,7 @@ const Home = () => {
     }));
 
     try {
-      await fetch(`http://localhost:5000/api/videos/${id}/interaction`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/videos/${id}/interaction`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: currentIsLiked ? 'unlike' : 'like' })
@@ -207,7 +207,7 @@ const Home = () => {
     }));
 
     try {
-      await fetch(`http://localhost:5000/api/videos/${id}/interaction`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/videos/${id}/interaction`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'view' })

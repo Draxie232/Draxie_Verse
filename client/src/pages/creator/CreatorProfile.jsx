@@ -77,13 +77,13 @@ const CreatorProfileGenZ = () => {
     const formData = new FormData();
     formData.append("image", file); 
     try {
-      const uploadResponse = await fetch("http://localhost:5000/api/upload", { method: "POST", body: formData });
+      const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/upload`, { method: "POST", body: formData });
       const uploadData = await uploadResponse.json();
       if (uploadResponse.ok) {
         setProfilePic(uploadData.imageUrl); 
         const currentUserEmail = localStorage.getItem("userEmail"); 
         if (currentUserEmail) {
-          await fetch("http://localhost:5000/api/update-profile-pic", {
+          await fetch(`${import.meta.env.VITE_API_URL}/api/update-profile-pic`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: currentUserEmail, imageUrl: uploadData.imageUrl }),
           });
@@ -120,7 +120,7 @@ const CreatorProfileGenZ = () => {
     if (currentUserEmail) formData.append("email", currentUserEmail);
 
     try {
-      const uploadResponse = await fetch("http://localhost:5000/api/upload-video", { method: "POST", body: formData });
+      const uploadResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/upload-video`, { method: "POST", body: formData });
       const uploadData = await uploadResponse.json();
 
       if (uploadResponse.ok) {
@@ -140,7 +140,7 @@ const CreatorProfileGenZ = () => {
   const handleDeleteVideo = async (videoId) => {
     if (!window.confirm("Are you sure you want to delete this vlog? This cannot be undone.")) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/videos/${videoId}`, { method: "DELETE" });
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/videos/${videoId}`, { method: "DELETE" });
       if (response.ok) {
         setVideos(videos.filter(video => video._id !== videoId));
       }
@@ -154,11 +154,11 @@ const CreatorProfileGenZ = () => {
       const currentUserEmail = localStorage.getItem("userEmail"); 
       if (!currentUserEmail) return;
       try {
-        const userRes = await fetch(`http://localhost:5000/api/user/${currentUserEmail}`);
+        const userRes = await fetch(`${import.meta.env.VITE_API_URL}/api/user/${currentUserEmail}`);
         const userData = await userRes.json();
         if (userRes.ok && userData?.profilePic) setProfilePic(userData.profilePic); 
 
-        const videoRes = await fetch(`http://localhost:5000/api/videos/${currentUserEmail}`);
+        const videoRes = await fetch(`${import.meta.env.VITE_API_URL}/api/videos/${currentUserEmail}`);
         const videoData = await videoRes.json();
         if (videoRes.ok && videoData?.videos) setVideos(videoData.videos); 
       } catch (error) {
