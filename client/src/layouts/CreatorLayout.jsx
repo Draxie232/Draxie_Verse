@@ -1,20 +1,23 @@
-// 1. Swap 'Routes' and 'Route' for 'Outlet'
-import { Outlet } from "react-router-dom"; 
-import BottomNav from "../components/BottomNav";
+import { Outlet } from 'react-router-dom';
+// Assuming you have a BottomNav component based on your folder structure
+import BottomNav from '../components/BottomNav'; 
 
-function CreatorLayout() {
+export default function CreatorLayout() {
   return (
-    <div className="h-screen max-w-[430px] mx-auto bg-black text-white relative">
+    // min-h-[100dvh] ensures it takes the full screen height
+    // flex-col stacks children vertically
+    <div className="flex flex-col min-h-[100dvh] w-full">
       
-      {/* 2. Replace the entire <Routes> block with <Outlet /> */}
-      {/* I added a wrapper div with pb-20 so the content doesn't get hidden behind the BottomNav */}
-      <div className="h-full w-full overflow-y-auto no-scrollbar pb-20">
+      {/* Main Content Area */}
+      {/* flex-1 pushes the BottomNav to the bottom, max-w-5xl keeps it from getting too wide on PC */}
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 pb-24">
         <Outlet />
-      </div>
+      </main>
 
-      <BottomNav />
+      {/* Navigation - fixed to the bottom on mobile */}
+      <div className="fixed bottom-0 w-full md:relative md:w-auto">
+        <BottomNav />
+      </div>
     </div>
   );
 }
-
-export default CreatorLayout;
