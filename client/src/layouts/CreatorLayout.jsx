@@ -1,23 +1,24 @@
 import { Outlet } from 'react-router-dom';
-// Assuming you have a BottomNav component based on your folder structure
-import BottomNav from '../components/BottomNav'; 
+import BottomNav from '../components/BottomNav';
 
 export default function CreatorLayout() {
   return (
-    // min-h-[100dvh] ensures it takes the full screen height
-    // flex-col stacks children vertically
-    <div className="flex flex-col min-h-[100dvh] w-full">
+    // 1. Lock the entire app to exactly the height of the device screen
+    // 2. overflow-hidden prevents the main window from scrolling
+    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-[#0f0f13]">
       
-      {/* Main Content Area */}
-      {/* flex-1 pushes the BottomNav to the bottom, max-w-5xl keeps it from getting too wide on PC */}
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 pb-24">
+      {/* 3. The Content Area: flex-1 takes up all remaining space. 
+             overflow-y-auto makes ONLY this specific section scrollable! */}
+      <main className="flex-1 overflow-y-auto w-full max-w-5xl mx-auto">
         <Outlet />
       </main>
 
-      {/* Navigation - fixed to the bottom on mobile */}
-      <div className="fixed bottom-0 w-full md:relative md:w-auto">
+      {/* 4. The Navigation: It is NO LONGER fixed. 
+             It takes up physical space at the bottom of the flex container. */}
+      <div className="w-full flex-shrink-0 z-50 bg-[#1a1a24]">
         <BottomNav />
       </div>
+      
     </div>
   );
 }
